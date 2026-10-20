@@ -1,0 +1,194 @@
+package GUI;
+
+import javax.swing.*;
+import BusinessLogic.Entities.SesionUsuario;
+import DataAccess.DataHelper;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.sql.*;
+
+public class LoginPanelGeneralGUI implements Pantalla {
+    private JPanel panel;
+    private Image backgroundImage;
+
+    @SuppressWarnings("unused")
+    public LoginPanelGeneralGUI() {
+        backgroundImage = new ImageIcon(getClass().getResource("/GUI/Assets/fondo.png")).getImage();
+
+        panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+            }
+        };
+
+        panel.setLayout(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+
+        // LOGO
+        ImageIcon originalIcon = new ImageIcon("C:/Users/elian/G4_ProyectoFinal/src/GUI/Assets/LogoEpn.png");
+        Image image = originalIcon.getImage().getScaledInstance(290, 150, Image.SCALE_SMOOTH);
+        ImageIcon resizedIcon = new ImageIcon(image);
+        JLabel logoLabel = new JLabel(resizedIcon);
+        logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(logoLabel, gbc);
+
+        // TÍTULO
+        gbc.gridy++;
+        JLabel titleLabel = new JLabel("REGISTRO DE ASISTENCIA");
+        titleLabel.setFont(new Font("Times New Roman", Font.BOLD, 24));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(titleLabel, gbc);
+
+        // CAMPOS DE TEXTO
+        gbc.gridy++;
+        gbc.gridwidth = 1;
+        JLabel userLabel = new JLabel("Usuario:");
+        userLabel.setFont(new Font("Times New Roman", Font.PLAIN, 16));
+        panel.add(userLabel, gbc);
+
+        gbc.gridx = 1;
+        JTextField userField = new JTextField(15);
+        userField.setFont(new Font("Times New Roman", Font.PLAIN, 16));
+        panel.add(userField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        JLabel passLabel = new JLabel("Contraseña:");
+        passLabel.setFont(new Font("Times New Roman", Font.PLAIN, 16));
+        panel.add(passLabel, gbc);
+
+        gbc.gridx = 1;
+        JPasswordField passField = new JPasswordField(15);
+        passField.setFont(new Font("Times New Roman", Font.PLAIN, 16));
+        panel.add(passField, gbc);
+
+        // SELECCIÓN DE ROL
+        gbc.gridx = 0;
+        gbc.gridy++;
+        JLabel roleLabel = new JLabel("Rol:");
+        roleLabel.setFont(new Font("Times New Roman", Font.PLAIN, 16));
+        panel.add(roleLabel, gbc);
+
+        gbc.gridx = 1;
+        String[] roles = {"Estudiante", "Docente"};
+        JComboBox<String> roleSelect = new JComboBox<>(roles);
+        roleSelect.setFont(new Font("Times New Roman", Font.PLAIN, 16));
+        panel.add(roleSelect, gbc);
+
+        // BOTÓN DE INICIO DE SESIÓN
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 2;
+        JButton loginButton = new JButton("Iniciar Sesión");
+        loginButton.setFont(new Font("Times New Roman", Font.BOLD, 18));
+        loginButton.setBackground(new Color(0, 200, 0));
+        loginButton.setForeground(Color.WHITE);
+        loginButton.setFocusPainted(false);
+
+        loginButton.addActionListener(e -> {
+            String usuario = userField.getText().trim();
+            String contraseña = new String(passField.getPassword()).trim();
+            String selectedRole = (String) roleSelect.getSelectedItem();
+
+            if (usuario.isEmpty() || contraseña.isEmpty()) {
+                JOptionPane.showMessageDialog(panel, "Error: Usuario y contraseña no pueden estar vacíos.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try {
+                int idUsuario = validarCredenciales(selectedRole, usuario, contraseña);
+
+                if (idUsuario != -1) { 
+                    SesionUsuario.setUsuario(usuario); 
+
+                    if (selectedRole.equals("Docente")) {
+                        System.out.println("Usuario Docente autenticado. Redirigiendo a la interfaz del docente...");
+                        MainApp.mostrarPantallaDocente(idUsuario);  
+                    } else if (selectedRole.equals("Estudiante")) {
+                        System.out.println("Usuario Estudiante autenticado. Redirigiendo a la interfaz del Estudiante...");
+                        JOptionPane.showMessageDialog(panel, "Bienvenido, " + usuario + ". Redirección en proceso.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        MainApp.mostrarPantallaEstudiante();  
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(panel, "Error: Usuario o contraseña incorrectos.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(panel, "Error: No se pudo validar las credenciales.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        loginButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent evt) {
+                loginButton.setBackground(new Color(0, 180, 0));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent evt) {
+                loginButton.setBackground(new Color(0, 200, 0));
+            }
+        });
+
+        panel.add(loginButton, gbc);
+
+        // BOTÓN DE REGISTRO
+        gbc.gridy++;
+        JButton registerButton = new JButton("Registrarse");
+        registerButton.setFont(new Font("Times New Roman", Font.BOLD, 16));
+        registerButton.setBackground(new Color(50, 150, 250)); 
+        registerButton.setForeground(Color.WHITE);
+        registerButton.setFocusPainted(false);
+
+        registerButton.addActionListener(e -> {
+            System.out.println("Redirigiendo a la pantalla de registro...");
+            MainApp.mostrarPantalla(new RegistrarUsuarioGUI().getPanel());
+        });
+
+        panel.add(registerButton, gbc);
+    }
+
+    private int validarCredenciales(String rol, String usuario, String contraseña) throws Exception {
+        String query;
+        String idColumn;
+
+        if ("Estudiante".equals(rol)) {
+            query = "SELECT id_estudiante FROM estudiante WHERE usuario_estudiante = ? AND clave_estudiante = ?";
+            idColumn = "id_estudiante";
+        } else if ("Docente".equals(rol)) {
+            query = "SELECT id_profesor FROM profesor WHERE usuario_profesor = ? AND clave_profesor = ?";
+            idColumn = "id_profesor";
+        } else {
+            JOptionPane.showMessageDialog(panel, "Error: Rol inválido.", "Error", JOptionPane.ERROR_MESSAGE);
+            return -1;
+        }
+
+        try (Connection conn = DataHelper.openConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, usuario);
+            stmt.setString(2, contraseña);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(idColumn); 
+            }
+        } catch (SQLException e) {
+            throw new Exception("Error en la consulta SQL: " + e.getMessage());
+        }
+        return -1; 
+    }
+
+    @Override
+    public JPanel getPanel() {
+        return panel;
+    }
+}
